@@ -2,7 +2,7 @@
 const SHEET_ID = "1H7y7ereb81CeBBTa95mYDRepIpnaDxp7q2Rca17A2Wo";
 const GID_DIARIA = "1881326090";
 // GID da sheet semanal - obtido pelo URL da sheet semanal
-const GID_SEMANAL = "0"; // sheet principal (índice 0) - ajustar se necessário
+const GID_SEMANAL = "1762581"; // sheet principal (índice 0) - ajustar se necessário
 
 export const VSP_LIST = [
   { key: "solucoesfap", label: "SoluçõesFAP", color: "#3A86FF" },
