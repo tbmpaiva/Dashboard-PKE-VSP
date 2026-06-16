@@ -192,6 +192,80 @@ export function buildChartData(
   });
 }
 
+// ─── Helpers de período ───────────────────────────────────────────────────────
+
+// Extrai o mês de uma string de data "DD/MM/YYYY" → "YYYY-MM" (para agrupar)
+function monthKeyFromDate(dateStr: string): string {
+  // formato esperado: 12/06/2026 ou 2026-06-12
+  const parts = dateStr.includes("/") ? dateStr.split("/") : null;
+  if (parts && parts.length === 3) {
+    // DD/MM/YYYY
+    return `${parts[2]}-${parts[1]}`;
+  }
+  // fallback: tentar ISO
+  const d = new Date(dateStr);
+  if (!isNaN(d.getTime())) {
+    const mm = String(d.getMonth() + 1).padStart(2, "0");
+    return `${d.getFullYear()}-${mm}`;
+  }
+  return dateStr;
+}
+
+const PT_MONTHS: Record<string, string> = {
+  "01": "Janeiro", "02": "Fevereiro", "03": "Março", "04": "Abril",
+  "05": "Maio", "06": "Junho", "07": "Julho", "08": "Agosto",
+  "09": "Setembro", "10": "Outubro", "11": "Novembro", "12": "Dezembro",
+};
+
+export interface PeriodOption {
+  value: string; // "all" | "2026-06" | "24" (semana)
+  label: string; // "Todos" | "Junho 2026" | "Semana 24"
+}
+
+// Para vista diária: devolve os meses disponíveis nos dados
+export function getMonthOptions(rows: RowData[]): PeriodOption[] {
+  const seen = new Set<string>();
+  for (const row of rows) {
+    const key = monthKeyFromDate(row.period);
+    seen.add(key);
+  }
+  const sorted = Array.from(seen).sort();
+  const options: PeriodOption[] = [{ value: "all", label: "Todos os meses" }];
+  for (const key of sorted) {
+    const [year, month] = key.split("-");
+    options.push({ value: key, label: `${PT_MONTHS[month] || month} ${year}` });
+  }
+  return options;
+}
+
+// Para vista semanal: devolve as semanas disponíveis nos dados
+export function getWeekOptions(rows: RowData[]): PeriodOption[] {
+  const seen = new Set<string>();
+  for (const row of rows) {
+    seen.add(row.period);
+  }
+  const sorted = Array.from(seen).sort((a, b) => Number(a) - Number(b));
+  const options: PeriodOption[] = [{ value: "all", label: "Todas as semanas" }];
+  for (const week of sorted) {
+    options.push({ value: week, label: `Semana ${week}` });
+  }
+  return options;
+}
+
+// Filtra rows por período seleccionado
+export function filterRowsByPeriod(
+  rows: RowData[],
+  selectedPeriod: string,
+  isWeekly: boolean
+): RowData[] {
+  if (selectedPeriod === "all") return rows;
+  if (isWeekly) {
+    return rows.filter((r) => r.period === selectedPeriod);
+  }
+  // diária: filtrar por mês (YYYY-MM)
+  return rows.filter((r) => monthKeyFromDate(r.period) === selectedPeriod);
+}
+
 export function buildVspBreakdown(rows: RowData[]) {
   const totals = VSP_LIST.map((vsp) => {
     let trafego = 0;

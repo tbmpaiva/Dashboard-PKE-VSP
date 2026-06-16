@@ -5,13 +5,24 @@ import KpiCard from "./KpiCard";
 import EvolutionChart from "./EvolutionChart";
 import VspBreakdownTable from "./VspBreakdownTable";
 import VspFilter from "./VspFilter";
-import { RowData, computeGlobals, buildChartData, buildVspBreakdown, VspKey } from "@/lib/sheets";
+import PeriodSelector from "./PeriodSelector";
+import {
+  RowData,
+  computeGlobals,
+  buildChartData,
+  buildVspBreakdown,
+  VspKey,
+  getMonthOptions,
+  getWeekOptions,
+  filterRowsByPeriod,
+} from "@/lib/sheets";
 
-const REFRESH_MS = 5 * 60 * 1000; // 5 minutos
+const REFRESH_MS = 5 * 60 * 1000;
 
 export default function Dashboard() {
   const [view, setView] = useState<"daily" | "weekly">("daily");
   const [selectedVsp, setSelectedVsp] = useState<string>("all");
+  const [selectedPeriod, setSelectedPeriod] = useState<string>("all");
   const [rows, setRows] = useState<RowData[]>([]);
   const [fetchedAt, setFetchedAt] = useState<string>("");
   const [loading, setLoading] = useState(true);
@@ -35,21 +46,45 @@ export default function Dashboard() {
     }
   }, [view]);
 
+  // Reset do período quando muda a vista
   useEffect(() => {
+    setSelectedPeriod("all");
     setLoading(true);
     fetchData();
     const interval = setInterval(fetchData, REFRESH_MS);
     return () => clearInterval(interval);
   }, [fetchData]);
 
+  // Auto-seleccionar o período mais recente quando os dados chegam
+  useEffect(() => {
+    if (rows.length === 0) return;
+    const opts = view === "weekly" ? getWeekOptions(rows) : getMonthOptions(rows);
+    // Se só existe um período além de "Todos", seleccioná-lo automaticamente
+    if (opts.length === 2 && selectedPeriod === "all") {
+      setSelectedPeriod(opts[1].value);
+    }
+  }, [rows, view]);
+
+  const isWeekly = view === "weekly";
+  const periodOptions = isWeekly ? getWeekOptions(rows) : getMonthOptions(rows);
+
+  // Aplicar filtro de período antes de calcular tudo o resto
+  const filteredRows = filterRowsByPeriod(rows, selectedPeriod, isWeekly);
+
   const vspKey = selectedVsp === "all" ? "all" : (selectedVsp as VspKey);
-  const globals = computeGlobals(rows, vspKey);
-  const chartData = buildChartData(rows, vspKey);
-  const vspBreakdown = buildVspBreakdown(rows);
+  const globals = computeGlobals(filteredRows, vspKey);
+  const chartData = buildChartData(filteredRows, vspKey);
+  const vspBreakdown = buildVspBreakdown(filteredRows);
 
   const lastUpdated = fetchedAt
     ? new Date(fetchedAt).toLocaleTimeString("pt-PT", { hour: "2-digit", minute: "2-digit" })
     : "--:--";
+
+  // Label do período activo para mostrar nos KPI cards
+  const activePeriodLabel =
+    selectedPeriod === "all"
+      ? "Acumulado total"
+      : periodOptions.find((o) => o.value === selectedPeriod)?.label || selectedPeriod;
 
   return (
     <div className="min-h-screen" style={{ background: "#0D1B2A" }}>
@@ -63,7 +98,6 @@ export default function Dashboard() {
         }}
       >
         <div className="flex items-center gap-4">
-          {/* Logo PKE wordmark */}
           <div className="flex items-center gap-2">
             <div
               className="px-2 py-1 rounded font-black text-lg tracking-tighter"
@@ -88,7 +122,6 @@ export default function Dashboard() {
         </div>
 
         <div className="flex items-center gap-4">
-          {/* Indicador de refresh */}
           <div className="flex items-center gap-1.5 text-xs" style={{ color: "#7A9CC4" }}>
             <div
               className="w-1.5 h-1.5 rounded-full"
@@ -100,7 +133,6 @@ export default function Dashboard() {
             <span>Última actualização: {lastUpdated}</span>
           </div>
 
-          {/* Toggle vista */}
           <div
             className="flex rounded-lg p-0.5"
             style={{ background: "#132C52", border: "1px solid #1E3D6B" }}
@@ -108,7 +140,11 @@ export default function Dashboard() {
             {(["daily", "weekly"] as const).map((v) => (
               <button
                 key={v}
-                onClick={() => { setView(v); setLoading(true); }}
+                onClick={() => {
+                  setView(v);
+                  setSelectedPeriod("all");
+                  setLoading(true);
+                }}
                 className="px-3 py-1.5 rounded-md text-xs font-medium transition-all duration-150"
                 style={{
                   background: view === v ? "#1D57A0" : "transparent",
@@ -123,15 +159,30 @@ export default function Dashboard() {
       </header>
 
       {/* Main */}
-      <main className="px-6 py-6 max-w-7xl mx-auto space-y-6">
+      <main className="px-6 py-6 max-w-7xl mx-auto space-y-5">
 
-        {/* Filtro VSP */}
+        {/* Linha 1: Filtro VSP */}
         <div className="flex items-center justify-between gap-4 flex-wrap">
           <VspFilter selected={selectedVsp} onChange={setSelectedVsp} />
           <span className="text-xs mono" style={{ color: "#3A6090" }}>
             Refresh automático a cada 5 min
           </span>
         </div>
+
+        {/* Linha 2: Selector de período */}
+        {!loading && rows.length > 0 && (
+          <div
+            className="rounded-xl px-5 py-3"
+            style={{ background: "#0F2240", border: "1px solid #1E3D6B" }}
+          >
+            <PeriodSelector
+              options={periodOptions}
+              selected={selectedPeriod}
+              onChange={setSelectedPeriod}
+              isWeekly={isWeekly}
+            />
+          </div>
+        )}
 
         {/* Erro */}
         {error && (
@@ -159,7 +210,7 @@ export default function Dashboard() {
             <KpiCard
               label="Tráfego Total"
               value={globals.totalTrafico.toLocaleString("pt-PT")}
-              subLabel={selectedVsp === "all" ? "Todas as VSPs" : selectedVsp}
+              subLabel={activePeriodLabel}
               accent="#1D57A0"
               icon={
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -173,7 +224,7 @@ export default function Dashboard() {
             <KpiCard
               label="Leads Totais"
               value={globals.totalLeads.toString()}
-              subLabel={selectedVsp === "all" ? "Todas as VSPs" : selectedVsp}
+              subLabel={activePeriodLabel}
               trend={globals.totalLeads > 0 ? "up" : "neutral"}
               icon={
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -203,7 +254,7 @@ export default function Dashboard() {
             style={{ background: "#132C52", border: "1px solid #1E3D6B" }}
           />
         ) : (
-          <EvolutionChart data={chartData} isWeekly={view === "weekly"} />
+          <EvolutionChart data={chartData} isWeekly={isWeekly} />
         )}
 
         {/* Tabela de detalhe por VSP */}
