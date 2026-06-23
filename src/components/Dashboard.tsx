@@ -98,17 +98,19 @@ export default function Dashboard() {
         }}
       >
         <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
+            {/* Logo PKE */}
             <div
-              className="px-2 py-1 rounded font-black text-lg tracking-tighter"
-              style={{
-                background: "#1D57A0",
-                color: "#E8F1FF",
-                fontFamily: "Inter",
-                letterSpacing: "-0.04em",
-              }}
+              className="flex items-center justify-center rounded-lg p-1.5 flex-shrink-0"
+              style={{ background: "#1D57A0", width: 44, height: 44 }}
             >
-              PKE
+              <img
+                src="/logo-pke.png"
+                alt="PKE Automotive"
+                width={32}
+                height={32}
+                style={{ objectFit: "contain", filter: "brightness(0) invert(1)" }}
+              />
             </div>
             <div>
               <div className="text-sm font-semibold" style={{ color: "#E8F1FF", lineHeight: 1.2 }}>
