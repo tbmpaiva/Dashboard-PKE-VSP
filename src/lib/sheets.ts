@@ -196,6 +196,7 @@ export function computeGlobals(rows: RowData[], vsp: VspKey | "all") {
   let totalTrafico = 0;
   let totalLeads   = 0;
   let totalInvestimento = 0;
+  let totalLeadsCampanha = 0;
 
   for (const row of rows) {
     if (vsp === "all") {
@@ -208,12 +209,13 @@ export function computeGlobals(rows: RowData[], vsp: VspKey | "all") {
       totalTrafico += row[`trafego_${vsp}` as keyof RowData] as number;
       totalLeads   += row[`leads_${vsp}`   as keyof RowData] as number;
     }
-    // Investimento é sempre o total da campanha (não divide por VSP)
+    totalLeadsCampanha += row.total_leads;
     totalInvestimento += row.investimento_total;
   }
 
   const txConv   = totalTrafico > 0 ? (totalLeads / totalTrafico) * 100 : 0;
-  const cplGlobal = totalLeads > 0 ? totalInvestimento / totalLeads : 0;
+  // CPL Global usa sempre os leads de toda a campanha, não varia com o filtro de VSP
+  const cplGlobal = totalLeadsCampanha > 0 ? totalInvestimento / totalLeadsCampanha : 0;
 
   // Totais de plataforma
   const totalMeta   = rows.reduce((s, r) => s + r.investimento_meta, 0);
