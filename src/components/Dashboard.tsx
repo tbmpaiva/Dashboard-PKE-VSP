@@ -8,6 +8,7 @@ import VspBreakdownTable from "./VspBreakdownTable";
 import VspFilter from "./VspFilter";
 import PeriodSelector from "./PeriodSelector";
 import InvestimentoPanel from "./InvestimentoPanel";
+import MethodologyNote from "./MethodologyNote";
 import {
   RowData, computeGlobals, buildChartData, buildVspBreakdown, VspKey,
   getMonthOptions, getWeekOptions, filterRowsByPeriod,
@@ -197,8 +198,10 @@ export default function Dashboard() {
           <div className="rounded-xl h-56 animate-pulse"
             style={{ background: "#132C52", border: "1px solid #1E3D6B" }} />
         ) : (
-          <VspBreakdownTable data={breakdown} selectedVsp={selectedVsp} onSelect={setSelectedVsp} />
+          <VspBreakdownTable data={breakdown} selectedVsp={selectedVsp} onSelect={setSelectedVsp} showCpl={showInvestimento} />
         )}
+
+        <MethodologyNote />
 
         {/* Rodapé */}
         <div className="flex items-center justify-between pt-2 pb-4">

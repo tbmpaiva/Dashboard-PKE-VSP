@@ -246,6 +246,12 @@ export function buildChartData(rows: RowData[], vsp: VspKey | "all") {
 }
 
 export function buildVspBreakdown(rows: RowData[]) {
+  const totalTrafegoConta = rows.reduce((s, r) =>
+    s + r.trafego_solucoesfap + r.trafego_fapluz + r.trafego_fapemergencia +
+        r.trafego_faporcamento + r.trafego_scorecardfap, 0);
+  const totalInvestimentoConta = rows.reduce((s, r) => s + r.investimento_total, 0);
+  const cpcMedio = totalTrafegoConta > 0 ? totalInvestimentoConta / totalTrafegoConta : 0;
+
   return VSP_LIST.map((vsp) => {
     let trafego = 0;
     let leads   = 0;
@@ -254,6 +260,12 @@ export function buildVspBreakdown(rows: RowData[]) {
       leads   += row[`leads_${vsp.key}`   as keyof RowData] as number;
     }
     const txconv = trafego > 0 ? parseFloat(((leads / trafego) * 100).toFixed(1)) : 0;
-    return { ...vsp, trafego, leads, txconv };
+
+    // CPL estimado: custo estimado da VSP (trafego x CPC médio da conta) / leads da VSP
+    // Assume CPC uniforme entre VSPs, aproximação sem dados reais de custo por VSP
+    const custoEstimado = trafego * cpcMedio;
+    const cplEstimado = leads > 0 ? parseFloat((custoEstimado / leads).toFixed(2)) : 0;
+
+    return { ...vsp, trafego, leads, txconv, cplEstimado };
   });
 }
