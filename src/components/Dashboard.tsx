@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import KpiCard from "./KpiCard";
 import EvolutionChart from "./EvolutionChart";
+import CplChart from "./CplChart";
 import VspBreakdownTable from "./VspBreakdownTable";
 import VspFilter from "./VspFilter";
 import PeriodSelector from "./PeriodSelector";
@@ -184,6 +185,11 @@ export default function Dashboard() {
             style={{ background: "#132C52", border: "1px solid #1E3D6B" }} />
         ) : (
           <EvolutionChart data={chartData} isWeekly={isWeekly} showInvestimento={showInvestimento} />
+        )}
+
+        {/* Gráfico de investimento e CPL */}
+        {!(loading && rows.length === 0) && (
+          <CplChart data={chartData} isWeekly={isWeekly} />
         )}
 
         {/* Tabela VSP */}
