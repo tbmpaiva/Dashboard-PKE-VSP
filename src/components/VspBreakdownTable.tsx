@@ -7,7 +7,10 @@ interface VspRow {
   trafego: number;
   leads: number;
   txconv: number;
-  cplEstimado: number;
+  invMeta: number;
+  invGoogle: number;
+  invTotal: number;
+  cplReal: number;
 }
 
 interface Props {
@@ -17,13 +20,21 @@ interface Props {
   showCpl: boolean;
 }
 
+function eur(n: number): string {
+  return n.toLocaleString("pt-PT", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
 export default function VspBreakdownTable({ data, selectedVsp, onSelect, showCpl }: Props) {
-  const totalTrafego = data.reduce((s, r) => s + r.trafego, 0);
-  const totalLeads   = data.reduce((s, r) => s + r.leads, 0);
-  const totalTxConv  = totalTrafego > 0 ? ((totalLeads / totalTrafego) * 100).toFixed(1) : "0.0";
+  const totalTrafego  = data.reduce((s, r) => s + r.trafego, 0);
+  const totalLeads    = data.reduce((s, r) => s + r.leads, 0);
+  const totalMeta     = data.reduce((s, r) => s + r.invMeta, 0);
+  const totalGoogle   = data.reduce((s, r) => s + r.invGoogle, 0);
+  const totalInvest   = totalMeta + totalGoogle;
+  const totalTxConv   = totalTrafego > 0 ? ((totalLeads / totalTrafego) * 100).toFixed(1) : "0.0";
+  const totalCplReal  = totalLeads > 0 ? totalInvest / totalLeads : 0;
 
   const headers = showCpl
-    ? ["VSP", "Tráfego", "Leads", "Tx Conv", "CPL Estimado", "Barra"]
+    ? ["VSP", "Tráfego", "Leads", "Tx Conv", "Google €", "Meta €", "Total €", "CPL real", "Barra"]
     : ["VSP", "Tráfego", "Leads", "Tx Conv", "Barra"];
 
   return (
@@ -34,7 +45,7 @@ export default function VspBreakdownTable({ data, selectedVsp, onSelect, showCpl
         </h3>
         {showCpl && (
           <span className="text-xs" style={{ color: "#3A6090" }}>
-            CPL estimado = tráfego × CPC médio da conta / leads
+            CPL real = (Google + Meta) da VSP / leads da VSP
           </span>
         )}
       </div>
@@ -82,10 +93,24 @@ export default function VspBreakdownTable({ data, selectedVsp, onSelect, showCpl
                     {row.txconv.toFixed(1)}%
                   </td>
                   {showCpl && (
-                    <td className="px-5 py-3 text-right mono font-medium"
-                      style={{ color: row.cplEstimado > 0 ? "#F59E0B" : "#7A9CC4" }}>
-                      {row.cplEstimado > 0 ? `${row.cplEstimado.toFixed(2)}€` : "-"}
-                    </td>
+                    <>
+                      <td className="px-5 py-3 text-right mono font-medium"
+                        style={{ color: row.invGoogle > 0 ? "#A8C4E0" : "#7A9CC4" }}>
+                        {row.invGoogle > 0 ? `${eur(row.invGoogle)}€` : "-"}
+                      </td>
+                      <td className="px-5 py-3 text-right mono font-medium"
+                        style={{ color: row.invMeta > 0 ? "#A8C4E0" : "#7A9CC4" }}>
+                        {row.invMeta > 0 ? `${eur(row.invMeta)}€` : "-"}
+                      </td>
+                      <td className="px-5 py-3 text-right mono font-semibold"
+                        style={{ color: row.invTotal > 0 ? "#E8F1FF" : "#7A9CC4" }}>
+                        {row.invTotal > 0 ? `${eur(row.invTotal)}€` : "-"}
+                      </td>
+                      <td className="px-5 py-3 text-right mono font-medium"
+                        style={{ color: row.cplReal > 0 ? "#F59E0B" : "#7A9CC4" }}>
+                        {row.cplReal > 0 ? `${eur(row.cplReal)}€` : "-"}
+                      </td>
+                    </>
                   )}
                   <td className="px-5 py-3 w-32">
                     <div className="h-1.5 rounded-full overflow-hidden" style={{ background: "#1E3D6B" }}>
@@ -103,7 +128,14 @@ export default function VspBreakdownTable({ data, selectedVsp, onSelect, showCpl
               <td className="px-5 py-3 text-right mono font-bold" style={{ color: "#E8F1FF" }}>{totalTrafego.toLocaleString("pt-PT")}</td>
               <td className="px-5 py-3 text-right mono font-bold" style={{ color: "#3A86FF" }}>{totalLeads}</td>
               <td className="px-5 py-3 text-right mono font-bold" style={{ color: "#10B981" }}>{totalTxConv}%</td>
-              {showCpl && <td />}
+              {showCpl && (
+                <>
+                  <td className="px-5 py-3 text-right mono font-bold" style={{ color: "#A8C4E0" }}>{totalGoogle > 0 ? `${eur(totalGoogle)}€` : "-"}</td>
+                  <td className="px-5 py-3 text-right mono font-bold" style={{ color: "#A8C4E0" }}>{totalMeta > 0 ? `${eur(totalMeta)}€` : "-"}</td>
+                  <td className="px-5 py-3 text-right mono font-bold" style={{ color: "#E8F1FF" }}>{totalInvest > 0 ? `${eur(totalInvest)}€` : "-"}</td>
+                  <td className="px-5 py-3 text-right mono font-bold" style={{ color: "#F59E0B" }}>{totalCplReal > 0 ? `${eur(totalCplReal)}€` : "-"}</td>
+                </>
+              )}
               <td />
             </tr>
           </tfoot>

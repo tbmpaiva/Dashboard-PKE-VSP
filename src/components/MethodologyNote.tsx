@@ -24,7 +24,10 @@ export default function MethodologyNote() {
           <strong style={{ color: "#A8C4E0" }}>CPL Global:</strong> Investimento Total / Leads Totais do período. Inclui sitelinks, por isso é sempre igual ou superior ao CPL que resultaria de dividir apenas por ad group.
         </p>
         <p>
-          <strong style={{ color: "#A8C4E0" }}>CPL Estimado por VSP:</strong> não temos custo real discriminado por VSP nas plataformas, por isso este valor é uma aproximação. Calcula se um CPC médio da conta (Investimento Total / Tráfego Total), multiplica pelo tráfego de cada VSP para estimar o custo dessa VSP, e divide pelos leads da VSP. Assume que o custo por clique é igual em todas as VSPs, o que não é exacto na prática, serve para comparação relativa, não como valor de facturação.
+          <strong style={{ color: "#A8C4E0" }}>Investimento por VSP (Google, Meta, Total):</strong> gasto real de cada plataforma atribuído directamente a cada VSP, importado das sheets. Total = Google + Meta.
+        </p>
+        <p>
+          <strong style={{ color: "#A8C4E0" }}>CPL real por VSP:</strong> Investimento Total da VSP (Google + Meta) / Leads da VSP. Ao contrário do CPL Global, este valor usa custo real discriminado por VSP, por isso é um custo por lead exacto e não uma aproximação. VSPs sem leads mostram "-", já que a divisão não é definida.
         </p>
       </div>
     </div>

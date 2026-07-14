@@ -30,11 +30,22 @@ export interface RowData {
   txconv_fapemergencia: number;
   txconv_faporcamento:  number;
   txconv_scorecardfap:  number;
-  // Colunas S-V
+  // Colunas S-V (investimento global da campanha, via Adveronix)
   investimento_total: number;
   cpl_global:         number;
   investimento_meta:  number;
   investimento_google: number;
+  // Colunas W-AF (investimento real por VSP: Meta e Google separados)
+  inv_meta_solucoesfap:    number;
+  inv_google_solucoesfap:  number;
+  inv_meta_fapluz:         number;
+  inv_google_fapluz:       number;
+  inv_meta_fapemergencia:  number;
+  inv_google_fapemergencia: number;
+  inv_meta_faporcamento:   number;
+  inv_google_faporcamento: number;
+  inv_meta_scorecardfap:   number;
+  inv_google_scorecardfap: number;
 }
 
 // ─── Parsing ──────────────────────────────────────────────────────────────────
@@ -105,6 +116,17 @@ function parseRows(csv: string): RowData[] {
       cpl_global:          toNum(cols[19]),
       investimento_meta:   toNum(cols[20]),
       investimento_google: toNum(cols[21]),
+      // Investimento por VSP — W=22..AF=31 (Meta antes de Google em cada par)
+      inv_meta_solucoesfap:     toNum(cols[22]),
+      inv_google_solucoesfap:   toNum(cols[23]),
+      inv_meta_fapluz:          toNum(cols[24]),
+      inv_google_fapluz:        toNum(cols[25]),
+      inv_meta_fapemergencia:   toNum(cols[26]),
+      inv_google_fapemergencia: toNum(cols[27]),
+      inv_meta_faporcamento:    toNum(cols[28]),
+      inv_google_faporcamento:  toNum(cols[29]),
+      inv_meta_scorecardfap:    toNum(cols[30]),
+      inv_google_scorecardfap:  toNum(cols[31]),
     });
   }
   return rows;
@@ -248,26 +270,24 @@ export function buildChartData(rows: RowData[], vsp: VspKey | "all") {
 }
 
 export function buildVspBreakdown(rows: RowData[]) {
-  const totalTrafegoConta = rows.reduce((s, r) =>
-    s + r.trafego_solucoesfap + r.trafego_fapluz + r.trafego_fapemergencia +
-        r.trafego_faporcamento + r.trafego_scorecardfap, 0);
-  const totalInvestimentoConta = rows.reduce((s, r) => s + r.investimento_total, 0);
-  const cpcMedio = totalTrafegoConta > 0 ? totalInvestimentoConta / totalTrafegoConta : 0;
-
   return VSP_LIST.map((vsp) => {
-    let trafego = 0;
-    let leads   = 0;
+    let trafego   = 0;
+    let leads     = 0;
+    let invMeta   = 0;
+    let invGoogle = 0;
     for (const row of rows) {
-      trafego += row[`trafego_${vsp.key}` as keyof RowData] as number;
-      leads   += row[`leads_${vsp.key}`   as keyof RowData] as number;
+      trafego   += row[`trafego_${vsp.key}`    as keyof RowData] as number;
+      leads     += row[`leads_${vsp.key}`      as keyof RowData] as number;
+      invMeta   += row[`inv_meta_${vsp.key}`   as keyof RowData] as number;
+      invGoogle += row[`inv_google_${vsp.key}` as keyof RowData] as number;
     }
-    const txconv = trafego > 0 ? parseFloat(((leads / trafego) * 100).toFixed(1)) : 0;
+    const txconv   = trafego > 0 ? parseFloat(((leads / trafego) * 100).toFixed(1)) : 0;
+    const invTotal = invMeta + invGoogle;
 
-    // CPL estimado: custo estimado da VSP (trafego x CPC médio da conta) / leads da VSP
-    // Assume CPC uniforme entre VSPs, aproximação sem dados reais de custo por VSP
-    const custoEstimado = trafego * cpcMedio;
-    const cplEstimado = leads > 0 ? parseFloat((custoEstimado / leads).toFixed(2)) : 0;
+    // CPL real: investimento real da VSP (Meta + Google) / leads da VSP.
+    // Sem leads, o CPL é indefinido — devolve 0 e a tabela mostra "-".
+    const cplReal = leads > 0 ? parseFloat((invTotal / leads).toFixed(2)) : 0;
 
-    return { ...vsp, trafego, leads, txconv, cplEstimado };
+    return { ...vsp, trafego, leads, txconv, invMeta, invGoogle, invTotal, cplReal };
   });
 }
